@@ -584,13 +584,16 @@ app.post("/api/users/login", async (req, res) => {
       });
     }
 
-    const passwordMatch =await bcrypt.compare(req.body.password, userExist.password);
-    console.log(passwordMatch)
-    if(!passwordMatch){
+    const passwordMatch = await bcrypt.compare(
+      req.body.password,
+      userExist.password
+    );
+    console.log(passwordMatch);
+    if (!passwordMatch) {
       return res.status(403).json({
-        success:false,
-        msg:"Password dosenot match",
-      })
+        success: false,
+        msg: "Password dosenot match",
+      });
     }
 
     const myToken = jwt.sign({ data: req.body.email }, "abc12345", {
@@ -614,6 +617,28 @@ app.post("/api/users/login", async (req, res) => {
 //  3. Update User(also change password)
 app.patch("/api/users/update/:id", async (req, res) => {
   try {
+    // user trying to change password also
+    if (req.body.password) {
+      const salt = bcrypt.genSaltSync(saltRounds);
+      const newHasshedPassword = bcrypt.hashSync(req.body.password, salt);
+      console.log(newHasshedPassword);
+
+      const updatedUser=await UserTable.findByIdAndUpdate(req.params.id, {...req.body, password:newHasshedPassword}, {new:true})
+      
+      return res.status(200).json({
+        success:true,
+        msg:"User updated successfully",
+        data:updatedUser,
+      })
+    }
+
+    const updatedUser=await UserTable.findByIdAndUpdate(req.params.id, req.body, {new:true})
+    return res.status(200).json({
+      success:true,
+      msg:"User updated successfully",
+      data:updatedUser
+    })
+
   } catch (error) {
     return res.status(500).json({
       success: false,
@@ -685,7 +710,7 @@ app.get("/api/users/:id", async (req, res) => {
     return res.status(200).json({
       success: true,
       msg: "get single user success",
-      data:singleUser,
+      data: singleUser,
     });
   } catch (error) {
     return res.status(500).json({
